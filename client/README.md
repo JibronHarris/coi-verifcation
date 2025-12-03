@@ -5,9 +5,11 @@ Simple React + Vite frontend with login functionality.
 ## Features
 
 - ✅ Vite for fast development
-- ✅ React 19
+- ✅ React 19 with React Router
+- ✅ Material-UI for UI components and theming
 - ✅ Login and Registration forms
 - ✅ Session management with Auth.js
+- ✅ Protected routes
 - ✅ Connected to backend API
 
 ## Setup
@@ -60,3 +62,9 @@ npm run build
 ```
 
 The built files will be in the `dist/` directory.
+
+## Documentation
+
+For more information about the application structure, architecture, and styling:
+
+- [Frontend Structure](./FRONTEND_STRUCTURE.md) - Complete application organization, architecture, and Material-UI theming guide
