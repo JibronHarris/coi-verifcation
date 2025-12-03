@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import userDao from "../dao/user.dao";
 
 // Configure Passport local strategy for email/password
 passport.use(
@@ -14,13 +12,8 @@ passport.use(
     },
     async (email, password, done) => {
       try {
-        // Normalize email
-        const normalizedEmail = email.toLowerCase().trim();
-
-        // Find user
-        const user = await prisma.user.findUnique({
-          where: { email: normalizedEmail },
-        });
+        // Find user with password
+        const user = await userDao.findByEmailWithPassword(email);
 
         if (!user || !user.password) {
           return done(null, false, { message: "Invalid email or password" });
@@ -49,19 +42,21 @@ passport.serializeUser((user: any, done) => {
 // Deserialize user from session
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-      },
-    });
-    done(null, user);
+    const user = await userDao.findById(id);
+    if (user) {
+      // Return minimal user data for session
+      done(null, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt,
+      });
+    } else {
+      done(null, null);
+    }
   } catch (error) {
     done(error);
   }
 });
 
-export { passport, prisma };
+export default passport;

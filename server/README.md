@@ -131,6 +131,200 @@ The Prisma schema includes:
 - **Session** - User sessions
 - **VerificationToken** - Email verification tokens
 
+## Architecture
+
+This backend follows a **layered MVC (Model-View-Controller) architecture** with clear separation of concerns. The architecture pattern flows as follows:
+
+```
+Client (HTTP Request)
+        |
+        v
++------------------+
+|   Controller     |  <- Handles HTTP request/response, validation
++------------------+
+        |
+        v
++------------------+
+|    Service       |  <- Business logic, orchestrates operations
++------------------+
+        |
+        v
++------------------+
+|   DAO (Data      |  <- Data access layer (DB queries, ORM)
+|   Access Object) |
++------------------+
+        |
+        v
++------------------+
+|   Database       |  <- Actual data storage (PostgreSQL via Prisma)
++------------------+
+```
+
+### Directory Structure
+
+```
+src/
+├── config/           # Configuration files
+│   ├── database.ts   # Prisma client instance
+│   └── passport.ts   # Passport authentication config
+├── controllers/      # HTTP request/response handlers
+│   ├── auth.controller.ts
+│   └── user.controller.ts
+├── services/         # Business logic layer
+│   ├── auth.service.ts
+│   └── user.service.ts
+├── dao/              # Data Access Objects (database operations)
+│   └── user.dao.ts
+├── types/            # TypeScript types/interfaces (DTOs)
+│   ├── auth.types.ts
+│   ├── user.types.ts
+│   └── express.d.ts
+├── middleware/       # Express middleware
+│   └── auth.middleware.ts
+└── routes/           # Route definitions (thin layer)
+    ├── auth.routes.ts
+    └── user.routes.ts
+```
+
+### Layer Responsibilities
+
+#### 1. **Routes** (`routes/`)
+
+- Define API endpoints
+- Map HTTP methods to controller methods
+- Apply middleware (authentication, validation)
+
+**Example:**
+
+```typescript
+router.get("/me", requireAuth, (req, res, next) =>
+  userController.getCurrentUser(req, res, next)
+);
+```
+
+#### 2. **Controllers** (`controllers/`)
+
+- Handle HTTP requests and responses
+- Validate request data
+- Call services for business logic
+- Format responses
+- Handle errors and status codes
+
+**Example:**
+
+```typescript
+async getCurrentUser(req: Request, res: Response) {
+  const user = req.user as AuthUserDto;
+  const dbUser = await userService.getUserById(user.id);
+  if (!dbUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  res.json(dbUser);
+}
+```
+
+#### 3. **Services** (`services/`)
+
+- Contain business logic
+- Orchestrate operations
+- Enforce business rules
+- Call DAOs for data access
+- Transform data between layers
+
+**Example:**
+
+```typescript
+async updateUser(id: string, data: UpdateUserDto) {
+  // Business logic: check if user exists
+  const existingUser = await userDao.findById(id);
+  if (!existingUser) {
+    throw new Error("User not found");
+  }
+  // Delegate to DAO
+  return userDao.update(id, data);
+}
+```
+
+#### 4. **DAO (Data Access Objects)** (`dao/`)
+
+- Handle all database operations
+- Encapsulate Prisma queries
+- Return typed data
+- Handle data normalization (e.g., email lowercasing)
+
+**Example:**
+
+```typescript
+async findById(id: string): Promise<UserResponseDto | null> {
+  return prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, ... }
+  });
+}
+```
+
+#### 5. **Types** (`types/`)
+
+- Define TypeScript interfaces for API contracts
+- Type-safe request/response shapes
+- Separate from Prisma domain models
+
+**Example:**
+
+```typescript
+export interface UserResponseDto {
+  id: string;
+  name: string | null;
+  email: string | null;
+  // ... other fields
+}
+```
+
+#### 6. **Config** (`config/`)
+
+- Database connection (Prisma client)
+- Authentication configuration (Passport)
+- Other application-wide configuration
+
+#### 7. **Middleware** (`middleware/`)
+
+- Reusable Express middleware
+- Authentication checks
+- Request validation
+- Error handling
+
+### Benefits of This Architecture
+
+1. **Separation of Concerns**: Each layer has a single, well-defined responsibility
+2. **Testability**: Easy to mock dependencies (e.g., mock DAO in service tests)
+3. **Maintainability**: Changes to database don't affect business logic
+4. **Scalability**: Easy to add new features following the same pattern
+5. **Type Safety**: TypeScript types ensure data consistency across layers
+
+### Data Flow Example
+
+**Request: `GET /api/users/:id`**
+
+1. **Route** (`user.routes.ts`) → Matches route, applies `requireAuth` middleware
+2. **Controller** (`user.controller.ts`) → Extracts `id` from params, calls service
+3. **Service** (`user.service.ts`) → Business logic (e.g., authorization check), calls DAO
+4. **DAO** (`user.dao.ts`) → Executes Prisma query: `prisma.user.findUnique()`
+5. **Database** → Returns data
+6. **DAO** → Returns typed `UserResponseDto`
+7. **Service** → Returns to controller
+8. **Controller** → Formats response, sends JSON to client
+
+### Adding New Features
+
+To add a new feature (e.g., "Posts"):
+
+1. Create `types/post.types.ts` - Define Post types
+2. Create `dao/post.dao.ts` - Database operations for posts
+3. Create `services/post.service.ts` - Business logic for posts
+4. Create `controllers/post.controller.ts` - HTTP handlers for posts
+5. Create `routes/post.routes.ts` - Define post endpoints
+6. Register routes in `index.ts`
+
 ## Development
 
 - Source code is in `src/`

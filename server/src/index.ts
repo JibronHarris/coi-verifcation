@@ -2,9 +2,10 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
-import { passport, prisma } from "./auth";
-import bcrypt from "bcryptjs";
-import userRoutes from "./routes/users";
+import passport from "./config/passport";
+import prisma from "./config/database";
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 
 // Load environment variables based on NODE_ENV
 const envFile =
@@ -48,117 +49,8 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Register route
-app.post("/api/auth/register", async (req: Request, res: Response) => {
-  try {
-    const { email, password, name } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        password: hashedPassword,
-        name,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-      },
-    });
-
-    res.status(201).json({ message: "User created successfully", user });
-  } catch (error: any) {
-    console.error("Registration error:", error);
-    if (error.code === "P2002") {
-      return res.status(400).json({ error: "Email already exists" });
-    }
-    res.status(500).json({ error: "Failed to create user" });
-  }
-});
-
-// Signin route
-app.post("/api/auth/signin", (req: Request, res: Response, next) => {
-  passport.authenticate("local", (err: any, user: any, info: any) => {
-    if (err) {
-      return res.status(500).json({ error: "Authentication error" });
-    }
-    if (!user) {
-      return res
-        .status(401)
-        .json({ error: info?.message || "Invalid email or password" });
-    }
-
-    // Log the user in (creates session)
-    req.logIn(user, (err) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed to create session" });
-      }
-
-      // Return user data
-      return res.json({
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
-      });
-    });
-  })(req, res, next);
-});
-
-// Get current session
-app.get("/api/auth/session", (req: Request, res: Response) => {
-  if (req.user) {
-    const user = req.user as any;
-    return res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-    });
-  }
-  return res.json({ user: null });
-});
-
-// Signout route
-app.post("/api/auth/signout", (req: Request, res: Response) => {
-  req.logout((err) => {
-    if (err) {
-      return res.status(500).json({ error: "Failed to sign out" });
-    }
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed to destroy session" });
-      }
-      res.clearCookie("connect.sid");
-      return res.json({ message: "Signed out successfully" });
-    });
-  });
-});
-
-// User routes
+// Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes);
 
