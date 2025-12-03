@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 
 export function Layout() {
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { signOut, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -24,7 +24,7 @@ export function Layout() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AppBar position="static">
+      <AppBar position="static" sx={{ borderRadius: 0 }}>
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             COI Verification

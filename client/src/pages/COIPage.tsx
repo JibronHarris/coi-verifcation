@@ -1,28 +1,25 @@
 import { useState, useEffect } from "react";
 import { apiService } from "../services/api";
+import type { COI } from "../types/coi.types";
 import {
   Paper,
   Typography,
   Box,
   Alert,
   CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Button,
 } from "@mui/material";
 
 export function COIPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [cois, setCois] = useState([]);
+  const [cois, setCois] = useState<COI[]>([]);
 
   useEffect(() => {
     loadCOIs();
@@ -37,7 +34,8 @@ export function COIPage() {
       setCois(data);
     } catch (err) {
       // If endpoint doesn't exist yet, show empty state
-      if (err.message.includes("404") || err.message.includes("Not Found")) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
         setCois([]);
       } else {
         setError("Failed to load COIs. Please try again later.");

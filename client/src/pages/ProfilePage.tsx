@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
 import {
@@ -11,13 +11,18 @@ import {
   CircularProgress,
 } from "@mui/material";
 
+interface FormData {
+  name: string;
+  email: string;
+}
+
 export function ProfilePage() {
   const { user, checkSession } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
   });
@@ -42,8 +47,10 @@ export function ProfilePage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
+
     setError("");
     setSuccess("");
     setSaving(true);
@@ -56,7 +63,7 @@ export function ProfilePage() {
       // Update auth context
       await checkSession();
     } catch (err) {
-      setError(err.message || "Failed to update profile");
+      setError(err instanceof Error ? err.message : "Failed to update profile");
       console.error("Error updating profile:", err);
     } finally {
       setSaving(false);
@@ -90,14 +97,18 @@ export function ProfilePage() {
           fullWidth
           label="Name"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setFormData({ ...formData, name: e.target.value })
+          }
           margin="normal"
         />
         <TextField
           fullWidth
           label="Email"
           value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setFormData({ ...formData, email: e.target.value })
+          }
           margin="normal"
           disabled
           helperText="Email cannot be changed"

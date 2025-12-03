@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -30,7 +30,7 @@ export function LoginPage() {
     return null;
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -65,7 +65,7 @@ export function LoginPage() {
         <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
           <Tabs
             value={isLogin ? 0 : 1}
-            onChange={(_, newValue) => {
+            onChange={(_, newValue: number) => {
               setIsLogin(newValue === 0);
               setError("");
             }}
@@ -81,7 +81,9 @@ export function LoginPage() {
               fullWidth
               label="Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setName(e.target.value)
+              }
               margin="normal"
               required={!isLogin}
             />
@@ -91,7 +93,9 @@ export function LoginPage() {
             label="Email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setEmail(e.target.value)
+            }
             margin="normal"
             required
           />
@@ -100,7 +104,9 @@ export function LoginPage() {
             label="Password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setPassword(e.target.value)
+            }
             margin="normal"
             required
           />
