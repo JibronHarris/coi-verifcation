@@ -1,32 +1,20 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
-import { getSession } from "../auth";
+import { prisma } from "../auth";
 
 const router = Router();
-const prisma = new PrismaClient();
 
-// Authentication middleware
-async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  try {
-    const session = await getSession(req);
-
-    if (!session || !session.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    (req as any).user = session.user;
-    (req as any).session = session;
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(401).json({ error: "Unauthorized" });
+// Authentication middleware - checks if user is logged in via Passport
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (req.user) {
+    return next();
   }
+  return res.status(401).json({ error: "Unauthorized" });
 }
 
 // Get current user
 router.get("/me", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user as any;
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -100,7 +88,7 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
 router.put("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const currentUser = (req as any).user;
+    const currentUser = req.user as any;
 
     // Only allow users to update their own profile
     if (id !== currentUser.id) {
@@ -139,7 +127,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
 router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const currentUser = (req as any).user;
+    const currentUser = req.user as any;
 
     // Only allow users to delete their own account
     if (id !== currentUser.id) {
@@ -163,4 +151,3 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 export default router;
-

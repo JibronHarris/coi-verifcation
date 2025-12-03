@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { PrismaClient } from "@prisma/client";
-import { handleAuth } from "./auth";
+import session from "express-session";
+import { passport, prisma } from "./auth";
 import bcrypt from "bcryptjs";
 import userRoutes from "./routes/users";
 
@@ -17,68 +17,38 @@ console.log(
 );
 
 const app = express();
-const prisma = new PrismaClient();
 
 // Middleware
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
   })
 );
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Auth.js handler middleware - handles all /api/auth/* routes
-app.all("/api/auth/*", async (req: Request, res: Response) => {
-  try {
-    // Create a request-like object for Auth.js
-    const authRequest = {
-      headers: new Headers(),
-      method: req.method,
-      url: req.url,
-      body: req.body,
-      query: req.query,
-    };
+// Session configuration
+app.use(
+  session({
+    secret: process.env.AUTH_SECRET || "your-secret-key-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: "lax",
+    },
+  })
+);
 
-    // Copy headers from Express request
-    Object.keys(req.headers).forEach((key) => {
-      const value = req.headers[key];
-      if (value) {
-        authRequest.headers.set(key, Array.isArray(value) ? value[0] : value);
-      }
-    });
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
-    const response = await handleAuth(authRequest as any);
-
-    // Set headers from response
-    if (response && response.headers) {
-      response.headers.forEach((value: string, key: string) => {
-        res.setHeader(key, value);
-      });
-    }
-
-    // Set status and send response
-    const status = response?.status || 200;
-    res.status(status);
-
-    if (response) {
-      const text = await response.text();
-      if (text) {
-        res.send(text);
-      } else {
-        res.end();
-      }
-    } else {
-      res.end();
-    }
-  } catch (error) {
-    console.error("Auth handler error:", error);
-    res.status(500).json({ error: "Authentication error" });
-  }
-});
-
-// Register route (creates user with hashed password)
+// Register route
 app.post("/api/auth/register", async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
@@ -87,9 +57,12 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -102,7 +75,7 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         name,
       },
@@ -122,6 +95,67 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
     }
     res.status(500).json({ error: "Failed to create user" });
   }
+});
+
+// Signin route
+app.post("/api/auth/signin", (req: Request, res: Response, next) => {
+  passport.authenticate("local", (err: any, user: any, info: any) => {
+    if (err) {
+      return res.status(500).json({ error: "Authentication error" });
+    }
+    if (!user) {
+      return res
+        .status(401)
+        .json({ error: info?.message || "Invalid email or password" });
+    }
+
+    // Log the user in (creates session)
+    req.logIn(user, (err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to create session" });
+      }
+
+      // Return user data
+      return res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+      });
+    });
+  })(req, res, next);
+});
+
+// Get current session
+app.get("/api/auth/session", (req: Request, res: Response) => {
+  if (req.user) {
+    const user = req.user as any;
+    return res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  }
+  return res.json({ user: null });
+});
+
+// Signout route
+app.post("/api/auth/signout", (req: Request, res: Response) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: "Failed to sign out" });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to destroy session" });
+      }
+      res.clearCookie("connect.sid");
+      return res.json({ message: "Signed out successfully" });
+    });
+  });
 });
 
 // User routes
