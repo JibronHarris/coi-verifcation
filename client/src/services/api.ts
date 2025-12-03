@@ -5,7 +5,11 @@ import type {
   RegisterDto,
 } from "../types/auth.types";
 import type { UserResponse, UpdateUserDto } from "../types/user.types";
-import type { COI } from "../types/coi.types";
+import type {
+  InsuranceCertificate,
+  CreateInsuranceCertificateDto,
+  UpdateInsuranceCertificateDto,
+} from "../types/insurance-certificate.types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -84,13 +88,43 @@ class ApiService {
     });
   }
 
-  // COI endpoints (placeholder for future implementation)
-  async getCOIs(): Promise<COI[]> {
-    return this.request<COI[]>("/api/cois");
+  // Insurance Certificate endpoints
+  async getInsuranceCertificates(): Promise<InsuranceCertificate[]> {
+    return this.request<InsuranceCertificate[]>("/api/insuranceCertificates");
   }
 
-  async getCOIById(id: string): Promise<COI> {
-    return this.request<COI>(`/api/cois/${id}`);
+  async getInsuranceCertificateById(id: string): Promise<InsuranceCertificate> {
+    return this.request<InsuranceCertificate>(
+      `/api/insuranceCertificates/${id}`
+    );
+  }
+
+  async createInsuranceCertificate(
+    data: CreateInsuranceCertificateDto
+  ): Promise<InsuranceCertificate> {
+    return this.request<InsuranceCertificate>("/api/insuranceCertificates", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateInsuranceCertificate(
+    id: string,
+    data: UpdateInsuranceCertificateDto
+  ): Promise<InsuranceCertificate> {
+    return this.request<InsuranceCertificate>(
+      `/api/insuranceCertificates/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async deleteInsuranceCertificate(id: string): Promise<void> {
+    return this.request<void>(`/api/insuranceCertificates/${id}`, {
+      method: "DELETE",
+    });
   }
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiService } from "../services/api";
-import type { COI } from "../types/coi.types";
+import type { InsuranceCertificate } from "../types/insurance-certificate.types";
 import {
   Paper,
   Typography,
@@ -16,30 +16,33 @@ import {
   Button,
 } from "@mui/material";
 
-export function COIPage() {
+export function InsuranceCertificatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [cois, setCois] = useState<COI[]>([]);
+  const [insuranceCertificates, setInsuranceCertificates] = useState<
+    InsuranceCertificate[]
+  >([]);
 
   useEffect(() => {
-    loadCOIs();
+    loadInsuranceCertificates();
   }, []);
 
-  const loadCOIs = async () => {
+  const loadInsuranceCertificates = async () => {
     try {
       setLoading(true);
       setError("");
-      // This endpoint will be implemented in the backend
-      const data = await apiService.getCOIs();
-      setCois(data);
+      const data = await apiService.getInsuranceCertificates();
+      setInsuranceCertificates(data);
     } catch (err) {
       // If endpoint doesn't exist yet, show empty state
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-        setCois([]);
+        setInsuranceCertificates([]);
       } else {
-        setError("Failed to load COIs. Please try again later.");
-        console.error("Error loading COIs:", err);
+        setError(
+          "Failed to load insurance certificates. Please try again later."
+        );
+        console.error("Error loading insurance certificates:", err);
       }
     } finally {
       setLoading(false);
@@ -75,14 +78,14 @@ export function COIPage() {
       )}
 
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
-        {cois.length === 0 ? (
+        {insuranceCertificates.length === 0 ? (
           <Box textAlign="center" py={8}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No Certificates Found
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              COI viewing functionality will be available once the backend
-              endpoint is implemented.
+              Insurance certificate viewing functionality will be available once
+              the backend endpoint is implemented.
             </Typography>
           </Box>
         ) : (
@@ -100,25 +103,25 @@ export function COIPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {cois.map((coi) => (
-                  <TableRow key={coi.id}>
-                    <TableCell>{coi.certificateNumber}</TableCell>
-                    <TableCell>{coi.insuredParty}</TableCell>
-                    <TableCell>{coi.insuranceCompany}</TableCell>
-                    <TableCell>{coi.effectiveDate}</TableCell>
-                    <TableCell>{coi.expirationDate}</TableCell>
+                {insuranceCertificates.map((certificate) => (
+                  <TableRow key={certificate.id}>
+                    <TableCell>{certificate.certificateNumber}</TableCell>
+                    <TableCell>{certificate.insuredParty}</TableCell>
+                    <TableCell>{certificate.insuranceCompany}</TableCell>
+                    <TableCell>{certificate.effectiveDate}</TableCell>
+                    <TableCell>{certificate.expirationDate}</TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
                         color={
-                          coi.status === "active"
+                          certificate.status === "active"
                             ? "success.main"
-                            : coi.status === "expired"
+                            : certificate.status === "expired"
                             ? "error.main"
                             : "text.secondary"
                         }
                       >
-                        {coi.status}
+                        {certificate.status}
                       </Typography>
                     </TableCell>
                     <TableCell>

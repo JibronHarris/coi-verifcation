@@ -7,7 +7,7 @@ import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
-import { COIPage } from "./pages/COIPage";
+import { InsuranceCertificatePage } from "./pages/InsuranceCertificatePage";
 
 function App() {
   return (
@@ -25,8 +25,14 @@ function App() {
               }
             >
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/cois" element={<COIPage />} />
-              <Route path="/" element={<Navigate to="/cois" replace />} />
+              <Route
+                path="/insuranceCertificates"
+                element={<InsuranceCertificatePage />}
+              />
+              <Route
+                path="/"
+                element={<Navigate to="/insuranceCertificates" replace />}
+              />
             </Route>
           </Routes>
         </AuthProvider>

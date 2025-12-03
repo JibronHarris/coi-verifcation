@@ -6,6 +6,7 @@ import passport from "./config/passport";
 import prisma from "./config/database";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import insuranceCertificateRoutes from "./routes/insurance-certificate.routes";
 
 // Load environment variables based on NODE_ENV
 const envFile =
@@ -53,6 +54,7 @@ app.use(passport.session());
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/insuranceCertificates", insuranceCertificateRoutes);
 
 // Health check
 app.get("/health", (req: Request, res: Response) => {

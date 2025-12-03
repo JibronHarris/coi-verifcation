@@ -26,7 +26,7 @@ export function LoginPage() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    navigate("/cois");
+    navigate("/insuranceCertificates");
     return null;
   }
 
@@ -44,7 +44,7 @@ export function LoginPage() {
       }
 
       if (result.success) {
-        navigate("/cois");
+        navigate("/insuranceCertificates");
       } else {
         setError(result.error || "Authentication failed");
       }

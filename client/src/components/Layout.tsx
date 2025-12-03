@@ -30,7 +30,11 @@ export function Layout() {
             COI Verification
           </Typography>
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button color="inherit" component={Link} to="/cois">
+            <Button
+              color="inherit"
+              component={Link}
+              to="/insuranceCertificates"
+            >
               COIs
             </Button>
             <Button color="inherit" component={Link} to="/profile">

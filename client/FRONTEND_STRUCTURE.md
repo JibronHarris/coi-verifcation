@@ -64,9 +64,9 @@ Material-UI theme configuration for consistent styling across the application.
 The app uses React Router for navigation:
 
 - `/login` - Login/Register page (public)
-- `/cois` - COI viewing page (protected)
+- `/insuranceCertificates` - Insurance Certificate viewing page (protected)
 - `/profile` - User profile page (protected)
-- `/` - Redirects to `/cois`
+- `/` - Redirects to `/insuranceCertificates`
 
 ## Styling with Material-UI
 
