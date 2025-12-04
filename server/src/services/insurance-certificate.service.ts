@@ -108,6 +108,28 @@ class InsuranceCertificateService {
     const accountIds = accounts.map((a) => a.id);
     return accountIds.includes(certificate.accountId);
   }
+
+  async getCertificateByShareToken(
+    shareToken: string
+  ): Promise<InsuranceCertificateResponseDto | null> {
+    return insuranceCertificateDao.findByShareToken(shareToken);
+  }
+
+  async trackCertificateView(shareToken: string): Promise<void> {
+    await insuranceCertificateDao.trackView(shareToken);
+  }
+
+  async acceptCertificateByShareToken(
+    shareToken: string
+  ): Promise<InsuranceCertificateResponseDto> {
+    const certificate = await insuranceCertificateDao.acceptByShareToken(
+      shareToken
+    );
+    if (!certificate) {
+      throw new Error("Certificate not found");
+    }
+    return certificate;
+  }
 }
 
 export default new InsuranceCertificateService();

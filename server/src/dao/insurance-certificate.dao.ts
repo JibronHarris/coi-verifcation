@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import prisma from "../config/database";
 import {
   InsuranceCertificateResponseDto,
@@ -6,6 +7,14 @@ import {
 } from "../types/insurance-certificate.types";
 
 class InsuranceCertificateDao {
+  /**
+   * Generate a unique share token for public access
+   */
+  private generateShareToken(): string {
+    // Generate a 32-byte random token and convert to base64url
+    return randomBytes(32).toString("base64url");
+  }
+
   /**
    * Get or create a default account for a user
    * This is needed because InsuranceCertificate requires an accountId
@@ -48,6 +57,9 @@ class InsuranceCertificateDao {
         expirationDate: true,
         status: true,
         accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -71,6 +83,9 @@ class InsuranceCertificateDao {
         expirationDate: true,
         status: true,
         accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -97,6 +112,19 @@ class InsuranceCertificateDao {
       status = "expired";
     }
 
+    // Generate a unique share token
+    let shareToken = this.generateShareToken();
+    // Ensure token is unique (very unlikely collision, but just in case)
+    let existing = await prisma.insuranceCertificate.findUnique({
+      where: { shareToken },
+    });
+    while (existing) {
+      shareToken = this.generateShareToken();
+      existing = await prisma.insuranceCertificate.findUnique({
+        where: { shareToken },
+      });
+    }
+
     return prisma.insuranceCertificate.create({
       data: {
         certificateNumber: data.certificateNumber,
@@ -106,6 +134,7 @@ class InsuranceCertificateDao {
         expirationDate,
         status,
         accountId,
+        shareToken,
       },
       select: {
         id: true,
@@ -116,6 +145,9 @@ class InsuranceCertificateDao {
         expirationDate: true,
         status: true,
         accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -184,6 +216,85 @@ class InsuranceCertificateDao {
         expirationDate: true,
         status: true,
         accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async findByShareToken(
+    shareToken: string
+  ): Promise<InsuranceCertificateResponseDto | null> {
+    return prisma.insuranceCertificate.findFirst({
+      where: {
+        shareToken,
+        deletedAt: null, // Only return non-deleted certificates
+      },
+      select: {
+        id: true,
+        certificateNumber: true,
+        insuredParty: true,
+        insuranceCompany: true,
+        effectiveDate: true,
+        expirationDate: true,
+        status: true,
+        accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async trackView(shareToken: string): Promise<void> {
+    await prisma.insuranceCertificate.updateMany({
+      where: {
+        shareToken,
+        deletedAt: null,
+      },
+      data: {
+        viewedAt: new Date(),
+      },
+    });
+  }
+
+  async acceptByShareToken(
+    shareToken: string
+  ): Promise<InsuranceCertificateResponseDto | null> {
+    const certificate = await prisma.insuranceCertificate.findFirst({
+      where: {
+        shareToken,
+        deletedAt: null,
+      },
+    });
+
+    if (!certificate) {
+      return null;
+    }
+
+    return prisma.insuranceCertificate.update({
+      where: { id: certificate.id },
+      data: {
+        status: "accepted",
+        acceptedAt: new Date(),
+      },
+      select: {
+        id: true,
+        certificateNumber: true,
+        insuredParty: true,
+        insuranceCompany: true,
+        effectiveDate: true,
+        expirationDate: true,
+        status: true,
+        accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -219,6 +330,9 @@ class InsuranceCertificateDao {
         expirationDate: true,
         status: true,
         accountId: true,
+        shareToken: true,
+        viewedAt: true,
+        acceptedAt: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -4,7 +4,15 @@ import { requireAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// All routes require authentication
+// Public routes (unauthenticated) - must be before requireAuth middleware
+router.get("/public/:token", (req, res, next) =>
+  insuranceCertificateController.viewCertificateByToken(req, res, next)
+);
+router.post("/public/:token/accept", (req, res, next) =>
+  insuranceCertificateController.acceptCertificateByToken(req, res, next)
+);
+
+// All other routes require authentication
 router.use(requireAuth);
 
 router.get("/", (req, res, next) =>

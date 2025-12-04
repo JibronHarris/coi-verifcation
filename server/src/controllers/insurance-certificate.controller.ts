@@ -167,6 +167,72 @@ class InsuranceCertificateController {
       res.status(500).json({ error: "Failed to delete certificate" });
     }
   }
+
+  /**
+   * Public endpoint to view certificate by share token (unauthenticated)
+   * Tracks when the link is accessed
+   */
+  async viewCertificateByToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({ error: "Share token is required" });
+      }
+
+      const certificate =
+        await insuranceCertificateService.getCertificateByShareToken(token);
+
+      if (!certificate) {
+        return res.status(404).json({ error: "Certificate not found" });
+      }
+
+      // Track that the link was accessed
+      await insuranceCertificateService.trackCertificateView(token);
+
+      // Return certificate data (excluding sensitive accountId)
+      const { accountId, ...publicCertificate } = certificate;
+      res.json(publicCertificate);
+    } catch (error: any) {
+      console.error("View certificate by token error:", error);
+      res.status(500).json({ error: "Failed to fetch certificate" });
+    }
+  }
+
+  /**
+   * Public endpoint to accept/confirm certificate by share token (unauthenticated)
+   * Changes status to "accepted"
+   */
+  async acceptCertificateByToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({ error: "Share token is required" });
+      }
+
+      const certificate =
+        await insuranceCertificateService.acceptCertificateByShareToken(token);
+
+      // Return certificate data (excluding sensitive accountId)
+      const { accountId, ...publicCertificate } = certificate;
+      res.json(publicCertificate);
+    } catch (error: any) {
+      console.error("Accept certificate by token error:", error);
+      if (error.message === "Certificate not found") {
+        return res.status(404).json({ error: "Certificate not found" });
+      }
+      res.status(500).json({ error: "Failed to accept certificate" });
+    }
+  }
 }
 
 export default new InsuranceCertificateController();

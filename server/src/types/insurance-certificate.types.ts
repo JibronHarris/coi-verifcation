@@ -8,6 +8,9 @@ export interface InsuranceCertificateResponseDto {
   expirationDate: Date;
   status: string;
   accountId: string;
+  shareToken: string | null;
+  viewedAt: Date | null;
+  acceptedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

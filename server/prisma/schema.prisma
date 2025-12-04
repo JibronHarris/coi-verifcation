@@ -69,6 +69,9 @@ model InsuranceCertificate {
   status            String    // "active" | "expired" | "pending"
   accountId         String
   account           Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  shareToken        String?   @unique // Unique token for public sharing
+  viewedAt          DateTime? // Timestamp when the share link was accessed
+  acceptedAt        DateTime? // Timestamp when the certificate was accepted
   deletedAt         DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
