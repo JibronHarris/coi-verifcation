@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { apiService } from "../services/api";
 import type { InsuranceCertificate } from "../types/insurance-certificate.types";
 import {
@@ -17,6 +18,8 @@ import {
 } from "@mui/material";
 
 export function InsuranceCertificatePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [insuranceCertificates, setInsuranceCertificates] = useState<
@@ -25,7 +28,9 @@ export function InsuranceCertificatePage() {
 
   useEffect(() => {
     loadInsuranceCertificates();
-  }, []);
+    // Refresh when navigating back from create page
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const loadInsuranceCertificates = async () => {
     try {
@@ -49,6 +54,22 @@ export function InsuranceCertificatePage() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -64,12 +85,28 @@ export function InsuranceCertificatePage() {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Certificates of Insurance
-      </Typography>
-      <Typography variant="body2" color="text.secondary" paragraph>
-        View and manage certificates of insurance
-      </Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Certificates of Insurance
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            View and manage certificates of insurance
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate("/insuranceCertificates/create")}
+        >
+          Create Certificate
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -108,8 +145,12 @@ export function InsuranceCertificatePage() {
                     <TableCell>{certificate.certificateNumber}</TableCell>
                     <TableCell>{certificate.insuredParty}</TableCell>
                     <TableCell>{certificate.insuranceCompany}</TableCell>
-                    <TableCell>{certificate.effectiveDate}</TableCell>
-                    <TableCell>{certificate.expirationDate}</TableCell>
+                    <TableCell>
+                      {formatDate(certificate.effectiveDate)}
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(certificate.expirationDate)}
+                    </TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
@@ -125,7 +166,13 @@ export function InsuranceCertificatePage() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Button size="small" variant="outlined">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() =>
+                          navigate(`/insuranceCertificates/${certificate.id}`)
+                        }
+                      >
                         View
                       </Button>
                     </TableCell>

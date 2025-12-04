@@ -1,15 +1,18 @@
 # COI Verification Backend
 
-Express + Prisma + Auth.js backend with TypeScript support.
+Express + Prisma + Passport.js backend with TypeScript support.
 
 ## Features
 
 - ✅ TypeScript configuration
 - ✅ Express server
 - ✅ Prisma ORM with PostgreSQL
-- ✅ Auth.js integration with email/password authentication
+- ✅ Passport.js with Local Strategy for email/password authentication
+- ✅ Session-based authentication with express-session
 - ✅ Protected routes with authentication middleware
 - ✅ User registration and authentication
+- ✅ Insurance Certificate management (CRUD operations)
+- ✅ Soft delete support for insurance certificates
 
 ## Setup
 
@@ -96,9 +99,17 @@ npm start
   }
   ```
 
-- `POST /api/auth/signin` - Sign in with email/password (handled by Auth.js)
-- `POST /api/auth/signout` - Sign out (handled by Auth.js)
-- `GET /api/auth/session` - Get current session (handled by Auth.js)
+- `POST /api/auth/signin` - Sign in with email/password (creates session)
+
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123"
+  }
+  ```
+
+- `POST /api/auth/signout` - Sign out (destroys session)
+- `GET /api/auth/session` - Get current session/user
 
 ### User Routes (Protected)
 
@@ -108,28 +119,82 @@ npm start
 - `PUT /api/users/:id` - Update user (requires authentication, can only update own profile)
 - `DELETE /api/users/:id` - Delete user (requires authentication, can only delete own account)
 
+### Insurance Certificate Routes (Protected)
+
+All insurance certificate routes require authentication and users can only access/modify their own certificates.
+
+- `GET /api/insuranceCertificates` - Get all certificates for the authenticated user
+
+- `GET /api/insuranceCertificates/:id` - Get certificate by ID (must be owned by user)
+
+- `POST /api/insuranceCertificates` - Create a new certificate
+
+  ```json
+  {
+    "certificateNumber": "CERT-12345",
+    "insuredParty": "Acme Corporation",
+    "insuranceCompany": "Insurance Co.",
+    "effectiveDate": "2024-01-01T00:00:00.000Z",
+    "expirationDate": "2024-12-31T23:59:59.999Z",
+    "status": "active"
+  }
+  ```
+
+- `PUT /api/insuranceCertificates/:id` - Update certificate (must be owned by user)
+
+  ```json
+  {
+    "certificateNumber": "CERT-12345",
+    "insuredParty": "Updated Party Name",
+    "insuranceCompany": "Updated Insurance Co.",
+    "effectiveDate": "2024-01-01T00:00:00.000Z",
+    "expirationDate": "2024-12-31T23:59:59.999Z",
+    "status": "active"
+  }
+  ```
+
+- `DELETE /api/insuranceCertificates/:id` - Soft delete certificate (must be owned by user)
+
 ### Health Check
 
 - `GET /health` - Server health check
 
 ## Authentication
 
-The backend uses Auth.js with Credentials provider for email/password authentication. Users must:
+The backend uses **Passport.js with Local Strategy** for email/password authentication. The authentication flow works as follows:
 
-1. Register with email and password
-2. Sign in using `/api/auth/signin` endpoint
-3. Include session cookies in subsequent requests
+1. **Registration**: Users register with email and password via `POST /api/auth/register`
+2. **Sign In**: Users sign in using `POST /api/auth/signin` which:
+   - Validates credentials using Passport Local Strategy
+   - Creates an express-session and stores it in a cookie
+   - Returns user data in the response
+3. **Session Management**: Subsequent requests automatically include the session cookie
+4. **Session Validation**: Protected routes use the `requireAuth` middleware which checks for `req.user` (populated by Passport from the session)
 
-Protected routes use the `requireAuth` middleware which checks for a valid session.
+**Session Configuration:**
+
+- Sessions are stored server-side using express-session
+- Session cookies are HTTP-only and secure (in production)
+- Sessions expire after 30 days
+- Session secret is configured via `AUTH_SECRET` environment variable
+
+**Protected Routes:**
+All routes under `/api/user`, `/api/users`, and `/api/insuranceCertificates` require authentication. The `requireAuth` middleware checks if `req.user` exists (set by Passport session deserialization).
 
 ## Database Schema
 
 The Prisma schema includes:
 
-- **User** - User accounts with email/password
+- **User** - User accounts with email/password authentication
 - **Account** - OAuth accounts (for future OAuth providers)
-- **Session** - User sessions
-- **VerificationToken** - Email verification tokens
+- **Session** - User sessions (for Auth.js compatibility, though currently using express-session)
+- **VerificationToken** - Email verification tokens (for future email verification)
+- **InsuranceCertificate** - Insurance certificates with:
+  - Certificate details (number, insured party, insurance company)
+  - Date range (effective date, expiration date)
+  - Status (active, expired, pending)
+  - Soft delete support (deletedAt field)
+  - Association with Account (via accountId)
 
 ## Architecture
 
@@ -169,21 +234,26 @@ src/
 │   └── passport.ts   # Passport authentication config
 ├── controllers/      # HTTP request/response handlers
 │   ├── auth.controller.ts
-│   └── user.controller.ts
+│   ├── user.controller.ts
+│   └── insurance-certificate.controller.ts
 ├── services/         # Business logic layer
 │   ├── auth.service.ts
-│   └── user.service.ts
+│   ├── user.service.ts
+│   └── insurance-certificate.service.ts
 ├── dao/              # Data Access Objects (database operations)
-│   └── user.dao.ts
+│   ├── user.dao.ts
+│   └── insurance-certificate.dao.ts
 ├── types/            # TypeScript types/interfaces (DTOs)
 │   ├── auth.types.ts
 │   ├── user.types.ts
+│   ├── insurance-certificate.types.ts
 │   └── express.d.ts
 ├── middleware/       # Express middleware
 │   └── auth.middleware.ts
 └── routes/           # Route definitions (thin layer)
     ├── auth.routes.ts
-    └── user.routes.ts
+    ├── user.routes.ts
+    └── insurance-certificate.routes.ts
 ```
 
 ### Layer Responsibilities
@@ -283,7 +353,7 @@ export interface UserResponseDto {
 #### 6. **Config** (`config/`)
 
 - Database connection (Prisma client)
-- Authentication configuration (Passport)
+- Passport.js authentication configuration (Local Strategy for email/password)
 - Other application-wide configuration
 
 #### 7. **Middleware** (`middleware/`)
@@ -318,12 +388,20 @@ export interface UserResponseDto {
 
 To add a new feature (e.g., "Posts"):
 
-1. Create `types/post.types.ts` - Define Post types
+1. Create `types/post.types.ts` - Define Post types (DTOs)
 2. Create `dao/post.dao.ts` - Database operations for posts
 3. Create `services/post.service.ts` - Business logic for posts
 4. Create `controllers/post.controller.ts` - HTTP handlers for posts
 5. Create `routes/post.routes.ts` - Define post endpoints
 6. Register routes in `index.ts`
+
+**Example:** The Insurance Certificate feature follows this pattern:
+
+- `types/insurance-certificate.types.ts` - DTOs for create/update operations
+- `dao/insurance-certificate.dao.ts` - Prisma queries with soft delete support
+- `services/insurance-certificate.service.ts` - Business logic (ownership checks, date validation)
+- `controllers/insurance-certificate.controller.ts` - HTTP request/response handling
+- `routes/insurance-certificate.routes.ts` - Route definitions with `requireAuth` middleware
 
 ## Development
 

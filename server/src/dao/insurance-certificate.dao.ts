@@ -34,8 +34,11 @@ class InsuranceCertificateDao {
   }
 
   async findById(id: string): Promise<InsuranceCertificateResponseDto | null> {
-    return prisma.insuranceCertificate.findUnique({
-      where: { id },
+    return prisma.insuranceCertificate.findFirst({
+      where: {
+        id,
+        deletedAt: null, // Only return non-deleted certificates
+      },
       select: {
         id: true,
         certificateNumber: true,
@@ -55,7 +58,10 @@ class InsuranceCertificateDao {
     accountId: string
   ): Promise<InsuranceCertificateResponseDto[]> {
     return prisma.insuranceCertificate.findMany({
-      where: { accountId },
+      where: {
+        accountId,
+        deletedAt: null, // Only return non-deleted certificates
+      },
       select: {
         id: true,
         certificateNumber: true,
@@ -129,6 +135,10 @@ class InsuranceCertificateDao {
       throw new Error("Insurance certificate not found");
     }
 
+    if (existing.deletedAt) {
+      throw new Error("Cannot update a deleted certificate");
+    }
+
     const updateData: any = {};
     if (data.certificateNumber !== undefined) {
       updateData.certificateNumber = data.certificateNumber;
@@ -181,8 +191,12 @@ class InsuranceCertificateDao {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.insuranceCertificate.delete({
+    // Soft delete: set deletedAt timestamp instead of actually deleting
+    await prisma.insuranceCertificate.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
     });
   }
 
@@ -194,6 +208,7 @@ class InsuranceCertificateDao {
       where: {
         id,
         accountId,
+        deletedAt: null, // Only return non-deleted certificates
       },
       select: {
         id: true,

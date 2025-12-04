@@ -8,6 +8,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { InsuranceCertificatePage } from "./pages/InsuranceCertificatePage";
+import { CreateInsuranceCertificatePage } from "./pages/CreateInsuranceCertificatePage";
+import { ViewInsuranceCertificatePage } from "./pages/ViewInsuranceCertificatePage";
 
 function App() {
   return (
@@ -28,6 +30,14 @@ function App() {
               <Route
                 path="/insuranceCertificates"
                 element={<InsuranceCertificatePage />}
+              />
+              <Route
+                path="/insuranceCertificates/create"
+                element={<CreateInsuranceCertificatePage />}
+              />
+              <Route
+                path="/insuranceCertificates/:id"
+                element={<ViewInsuranceCertificatePage />}
               />
               <Route
                 path="/"
