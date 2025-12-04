@@ -5,8 +5,11 @@ export interface InsuranceCertificate {
   insuranceCompany: string;
   effectiveDate: string;
   expirationDate: string;
-  status: "active" | "expired" | "pending";
+  status: "active" | "expired" | "pending" | "accepted";
   accountId: string;
+  shareToken: string | null;
+  viewedAt: string | null;
+  acceptedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

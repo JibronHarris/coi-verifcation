@@ -15,7 +15,10 @@ import {
   TableHead,
   TableRow,
   Button,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import LinkIcon from "@mui/icons-material/Link";
 
 export function InsuranceCertificatePage() {
   const navigate = useNavigate();
@@ -67,6 +70,22 @@ export function InsuranceCertificatePage() {
       });
     } catch {
       return dateString;
+    }
+  };
+
+  const getShareableLink = (shareToken: string | null) => {
+    if (!shareToken) return null;
+    // Use frontend URL for the shareable link
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/public/certificate/${shareToken}`;
+  };
+
+  const handleCopyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error("Failed to copy link:", err);
     }
   };
 
@@ -136,6 +155,7 @@ export function InsuranceCertificatePage() {
                   <TableCell>Effective Date</TableCell>
                   <TableCell>Expiration Date</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Share Link</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -159,11 +179,34 @@ export function InsuranceCertificatePage() {
                             ? "success.main"
                             : certificate.status === "expired"
                             ? "error.main"
+                            : certificate.status === "accepted"
+                            ? "info.main"
                             : "text.secondary"
                         }
                       >
                         {certificate.status}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {certificate.shareToken ? (
+                        <Tooltip title="Copy shareable link">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const link = getShareableLink(
+                                certificate.shareToken
+                              );
+                              if (link) handleCopyLink(link);
+                            }}
+                          >
+                            <LinkIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          N/A
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Button

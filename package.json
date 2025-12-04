@@ -4,6 +4,21 @@
   "description": "App for creating, mananging and confirming COI agreements between multiple parties",
   "main": "index.js",
   "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm run preview",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "clean": "npm run clean:root && npm run clean:server && npm run clean:client",
+    "clean:root": "rm -rf node_modules package-lock.json",
+    "clean:server": "cd server && rm -rf node_modules package-lock.json dist",
+    "clean:client": "cd client && rm -rf node_modules package-lock.json dist",
+    "clean:install": "npm run clean && npm run install:all",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/JibronHarris/coi-verifcation/issues"
   },
-  "homepage": "https://github.com/JibronHarris/coi-verifcation#readme"
+  "homepage": "https://github.com/JibronHarris/coi-verifcation#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

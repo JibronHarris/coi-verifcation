@@ -30,11 +30,34 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+
+      // Handle 204 No Content (no response body)
+      if (response.status === 204) {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return undefined as T;
+      }
+
+      // Get response text first to check if it's empty
+      const text = await response.text();
+
+      // Parse JSON only if there's content
+      let data: any;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          // If parsing fails, use the text as-is
+          data = text;
+        }
+      } else {
+        data = null;
+      }
 
       if (!response.ok) {
         throw new Error(
-          (data as { error?: string }).error ||
+          (data as { error?: string })?.error ||
             `HTTP error! status: ${response.status}`
         );
       }
@@ -125,6 +148,26 @@ class ApiService {
     return this.request<void>(`/api/insuranceCertificates/${id}`, {
       method: "DELETE",
     });
+  }
+
+  // Public certificate endpoints (unauthenticated)
+  async getPublicCertificateByToken(
+    token: string
+  ): Promise<InsuranceCertificate> {
+    return this.request<InsuranceCertificate>(
+      `/api/insuranceCertificates/public/${token}`
+    );
+  }
+
+  async acceptPublicCertificateByToken(
+    token: string
+  ): Promise<InsuranceCertificate> {
+    return this.request<InsuranceCertificate>(
+      `/api/insuranceCertificates/public/${token}/accept`,
+      {
+        method: "POST",
+      }
+    );
   }
 }
 

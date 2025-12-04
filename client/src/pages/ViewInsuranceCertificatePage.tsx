@@ -17,7 +17,12 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 export function ViewInsuranceCertificatePage() {
   const navigate = useNavigate();
@@ -29,6 +34,7 @@ export function ViewInsuranceCertificatePage() {
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -82,8 +88,31 @@ export function ViewInsuranceCertificatePage() {
         return "error";
       case "pending":
         return "warning";
+      case "accepted":
+        return "info";
       default:
         return "default";
+    }
+  };
+
+  const getShareableLink = (shareToken: string | null) => {
+    if (!shareToken) return null;
+    // Use frontend URL for the shareable link
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/public/certificate/${shareToken}`;
+  };
+
+  const handleCopyLink = async () => {
+    if (!certificate?.shareToken) return;
+    const link = getShareableLink(certificate.shareToken);
+    if (!link) return;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
     }
   };
 
@@ -277,6 +306,65 @@ export function ViewInsuranceCertificatePage() {
               {formatDate(certificate.updatedAt)}
             </Typography>
           </Grid>
+
+          {certificate.shareToken && (
+            <>
+              <Grid size={{ xs: 12 }}>
+                <Divider sx={{ my: 2 }} />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Shareable Link
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
+                  Share this link with anyone to allow them to view this
+                  certificate without an account
+                </Typography>
+                <TextField
+                  fullWidth
+                  value={getShareableLink(certificate.shareToken) || ""}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Tooltip title={linkCopied ? "Copied!" : "Copy link"}>
+                          <IconButton onClick={handleCopyLink} edge="end">
+                            <ContentCopyIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ),
+                  }}
+                  size="small"
+                />
+                {certificate.acceptedAt ? (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 0.5, display: "block" }}
+                  >
+                    Accepted: {formatDate(certificate.acceptedAt)}
+                  </Typography>
+                ) : certificate.viewedAt ? (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 0.5, display: "block" }}
+                  >
+                    Link accessed: {formatDate(certificate.viewedAt)}
+                  </Typography>
+                ) : null}
+              </Grid>
+            </>
+          )}
         </Grid>
       </Paper>
 

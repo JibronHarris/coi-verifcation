@@ -10,6 +10,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { InsuranceCertificatePage } from "./pages/InsuranceCertificatePage";
 import { CreateInsuranceCertificatePage } from "./pages/CreateInsuranceCertificatePage";
 import { ViewInsuranceCertificatePage } from "./pages/ViewInsuranceCertificatePage";
+import { PublicCertificatePage } from "./pages/PublicCertificatePage";
 
 function App() {
   return (
@@ -19,6 +20,11 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            {/* Public route - no authentication required */}
+            <Route
+              path="/public/certificate/:token"
+              element={<PublicCertificatePage />}
+            />
             <Route
               element={
                 <ProtectedRoute>
